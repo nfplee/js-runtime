@@ -3,6 +3,11 @@ import { createApp } from 'https://unpkg.com/petite-vue?module';
 const registry = {};
 let app = null;
 
+const hooks = {
+    processing: [],
+    processed: []
+};
+
 const pageHooks = {
     enter: {},
     leave: {}
@@ -26,6 +31,14 @@ export function onPageLeave(callback) {
     registerPageHook('leave', callback);
 }
 
+export function onProcessing(callback) {
+    hooks.processing.push(callback);
+}
+
+export function onProcessed(callback) {
+    hooks.processed.push(callback);
+}
+
 export function pageEnter(url) {
     runPageHooks('enter', url);
 }
@@ -35,12 +48,17 @@ export function pageLeave(url) {
 }
 
 export async function process(element) {
+    if (!runHooks('processing', element))
+        return;
+
     if (element.tagName?.toLowerCase() === 'script')
         await loadScript(element);
     else
         await Promise.all(Array.from(element.querySelectorAll('script')).map(script => loadScript(script)));
 
     await app.mount(element);
+
+    runHooks('processed', element);
 }
 
 export function register(name, factory) {
@@ -94,7 +112,10 @@ function loadScript(script) {
         if (hasSrc || isModule) {
             // External or inline module converted to blob.
             if (isModule && !hasSrc) {
-                const code = script.textContent;
+                // Fix issue resolving paths.
+                const base = window.location.origin;
+                const code = script.textContent.replaceAll('from \'/', `from '${base}/`);
+                
                 const blob = new Blob([code], { type: 'text/javascript' });
                 newScript.src = URL.createObjectURL(blob);
                 newScript.onload = () => {
@@ -124,11 +145,31 @@ function registerPageHook(type, callback) {
     pageHooks[type][key].push(callback);
 }
 
+function runHooks(type, element) {
+    const eventName = type === 'processing'
+        ? 'runtime:processing'
+        : 'runtime:processed';
+
+    const cancelled = !element.dispatchEvent(new Event(eventName, { bubbles: true }));
+
+    if (cancelled)
+        return false;
+
+    for (const callback of hooks[type]) {
+        const result = callback(element);
+
+        if (type === 'processing' && result === false)
+            return false;
+    }
+
+    return true;
+}
+
 function runPageHooks(type, url) {
     const key = getPageKey(url);
     const callbacks = pageHooks[type][key] || [];
 
     for (const callback of callbacks) {
-        const result = callback();
+        callback();
     }
 }

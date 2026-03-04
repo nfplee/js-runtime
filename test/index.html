@@ -19,6 +19,19 @@
         <di v-scope @notify="alert('Notified!')">
             <button @click="$dispatch('notify')">Notify</button>
         </div>
+        <button id="update">Update</button>
+        <div id="container"></div>
+        <script type="module">
+            import { process } from '/lib/runtime.js';
+
+            document.getElementById('update').addEventListener('click', () => {
+                document.getElementById('container').innerHTML = `<div v-scope="{ count: 0 }">
+                        <span v-text="count"></span>
+                        <button v-on:click="count++">inc</button>
+                    </div>`;
+                process(document.getElementById('container'));
+            });
+        </script>
     </main>
     <script type="module">
         import { start } from '/lib/runtime.js';
