@@ -1,0 +1,12 @@
+{
+  "author": "Lee Timmins",
+  "license": "MIT",
+  "scripts": {
+    "copy": "cpy ./src/**/* ./test/lib --parents",
+    "test": "npm run copy && browser-sync start --server ./test --files ./test/**/* --startPath /"
+  },
+  "dependencies": {
+    "browser-sync": "^3.0.4",
+    "cpy-cli": "^7.0.0"
+  }
+}
