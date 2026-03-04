@@ -35,12 +35,19 @@ export function pageLeave(url) {
 }
 
 export async function process(element) {
+    const cancelled = !element.dispatchEvent(new Event('processing', { bubbles: true }));
+
+    if (cancelled)
+        return;
+
     if (element.tagName?.toLowerCase() === 'script')
         await loadScript(element);
     else
         await Promise.all(Array.from(element.querySelectorAll('script')).map(script => loadScript(script)));
 
     await app.mount(element);
+
+    element.dispatchEvent(new Event('processed', { bubbles: true }))
 }
 
 export function register(name, factory) {
