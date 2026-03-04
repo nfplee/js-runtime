@@ -35,7 +35,6 @@ export function pageLeave(url) {
 }
 
 export async function process(element) {
-    // Check if the added node is a script tag.
     if (element.tagName?.toLowerCase() === 'script')
         await loadScript(element);
     else
