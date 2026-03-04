@@ -35,7 +35,7 @@ export function pageLeave(url) {
 }
 
 export async function process(element) {
-    const cancelled = !element.dispatchEvent(new Event('processing', { bubbles: true }));
+    const cancelled = !element.dispatchEvent(new Event('runtime:processing', { bubbles: true }));
 
     if (cancelled)
         return;
@@ -47,7 +47,7 @@ export async function process(element) {
 
     await app.mount(element);
 
-    element.dispatchEvent(new Event('processed', { bubbles: true }))
+    element.dispatchEvent(new Event('runtime:processed', { bubbles: true }))
 }
 
 export function register(name, factory) {
