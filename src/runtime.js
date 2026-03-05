@@ -11,27 +11,35 @@ const pageHooks = {
 /// Events
 
 window.addEventListener('pageshow', e => {
-    if (e.persisted) pageEnter(window.location.href);
+    if (e.persisted)
+        pageEnter(window.location.href, true);
 });
 
-window.addEventListener('pagehide', () => pageLeave(window.location.href));
+window.addEventListener('pagehide', e => pageLeave(window.location.href, e.persisted));
 
 /// Public API
 
-export function onPageEnter(callback) {
-    registerPageHook('enter', callback);
+export function onPageEnter(callback, {
+    skipCache = false
+} = {}) {
+    registerPageHook('enter', context => {
+        if (skipCache && context.fromCache)
+            return;
+
+        return callback(context);
+    });
 }
 
 export function onPageLeave(callback) {
     registerPageHook('leave', callback);
 }
 
-export function pageEnter(url) {
-    runPageHooks('enter', url);
+export function pageEnter(url, fromCache = false) {
+    runPageHooks('enter', url, { fromCache });
 }
 
-export function pageLeave(url) {
-    runPageHooks('leave', url);
+export function pageLeave(url, fromCache = false) {
+    runPageHooks('leave', url, { fromCache });
 }
 
 export async function process(element) {
@@ -134,11 +142,11 @@ function registerPageHook(type, callback) {
     pageHooks[type][key].push(callback);
 }
 
-function runPageHooks(type, url) {
+function runPageHooks(type, url, context) {
     const key = getPageKey(url);
     const callbacks = pageHooks[type][key] || [];
 
     for (const callback of callbacks) {
-        callback();
+        callback(context);
     }
 }

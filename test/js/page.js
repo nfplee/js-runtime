@@ -5,7 +5,7 @@ onPageEnter(() => {
 
     if (saved !== null)
         document.getElementById('test').$data.count = saved;
-});
+}, { skipCache: true });
 
 onPageLeave(() => {
     sessionStorage.setItem('count', document.getElementById('test').$data.count);
