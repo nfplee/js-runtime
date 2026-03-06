@@ -43,7 +43,7 @@ export function pageLeave(url, fromCache = false) {
 }
 
 export async function process(element) {
-    const cancelled = !element.dispatchEvent(new Event('runtime:processing', { bubbles: true }));
+    const cancelled = !element.dispatchEvent(new Event('runtime:processing', { bubbles: true, cancelable: true }));
 
     if (cancelled)
         return;
