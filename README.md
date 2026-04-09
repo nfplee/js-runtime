@@ -96,7 +96,7 @@ onPageLoad(context => {
 `onLoad()` runs for both the HTML present on the initial page load and any HTML added dynamically later, so you can safely work with the DOM in either case. It also runs after the runtime has mounted, so you can safely access Vue state inside the callback.
 
 ```js
-import { onLoad } from 'runtime';
+import { onLoad } from './runtime.js';
 
 onLoad(context => {
     context.querySelectorAll('.slug').forEach(slug => {
