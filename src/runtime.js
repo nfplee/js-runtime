@@ -3,51 +3,54 @@ import { createApp } from 'https://unpkg.com/petite-vue?module';
 const registry = {};
 let app = null;
 
+const hooks = {
+    load: []
+};
+
 const pageHooks = {
-    enter: {},
-    leave: {}
+    load: {},
+    unload: {}
 };
 
 /// Events
 
 window.addEventListener('pageshow', e => {
     if (e.persisted)
-        pageEnter(window.location.href, true);
+        pageLoad(window.location.href, true);
 });
 
-window.addEventListener('pagehide', e => pageLeave(window.location.href, e.persisted));
+window.addEventListener('pagehide', e => pageUnload(window.location.href, e.persisted));
 
 /// Public API
 
-export function onPageEnter(callback, {
-    skipCache = false
+export function onLoad(callback) {
+    hooks.load.push(callback);
+}
+
+export function onPageLoad(callback, {
+    includeCacheRestore = false
 } = {}) {
-    registerPageHook('enter', context => {
-        if (skipCache && context.fromCache)
+    registerPageHook('load', context => {
+        if (!includeCacheRestore && context.isCacheRestore)
             return;
 
         return callback(context);
     });
 }
 
-export function onPageLeave(callback) {
-    registerPageHook('leave', callback);
+export function onPageUnload(callback) {
+    registerPageHook('unload', callback);
 }
 
-export function pageEnter(url, fromCache = false) {
-    runPageHooks('enter', url, { fromCache });
+export function pageLoad(url, isCacheRestore = false) {
+    runPageHooks('load', { url, isCacheRestore });
 }
 
-export function pageLeave(url, fromCache = false) {
-    runPageHooks('leave', url, { fromCache });
+export function pageUnload(url, isCacheRestore = false) {
+    runPageHooks('unload', { url, isCacheRestore });
 }
 
 export async function process(element) {
-    const cancelled = !element.dispatchEvent(new Event('runtime:processing', { bubbles: true, cancelable: true }));
-
-    if (cancelled)
-        return;
-
     if (element.tagName?.toLowerCase() === 'script')
         await loadScript(element);
     else
@@ -55,7 +58,7 @@ export async function process(element) {
 
     await app.mount(element);
 
-    element.dispatchEvent(new Event('runtime:processed', { bubbles: true }))
+    runHooks('load', { element });
 }
 
 export function register(name, factory) {
@@ -66,26 +69,33 @@ export async function start() {
     app = createApp(registry);
     await app.mount();
     
-    pageEnter(window.location.href);
+    runHooks('load', { element: document });
+
+    pageLoad(window.location.href);
 }
 
 /// Helpers
 
-function getPageKey(url) {
-    const u = new URL(url, document.baseURI);
-    let path = u.pathname;
+export function getActiveModuleKeys() {
+    return [...new Set([...document.querySelectorAll('script[type="module"][src]')]
+        .map(script => script?.src)
+        .filter(Boolean))];
+}
 
-    // Remove any "index.*" or "default.*" at the end (case-insensitive).
-    path = path.replace(/\/(?:index|default)\.[^\/]+$/i, '/');
+function inferActiveModuleKey() {
+    const activeKeys = new Set(getActiveModuleKeys());
 
-    if (path === '')
-        path = '/';
+    if (activeKeys.size === 0)
+        return null;
 
-    // Remove trailing slash except root.
-    if (path.length > 1 && path.endsWith('/'))
-        path = path.slice(0, -1);
+    const stack = new Error().stack;
 
-    return path;
+    if (!stack)
+        return null;
+
+    return (stack.match(/https?:\/\/[^\s)\]]+/g) || [])
+        .map(match => match.replace(/:\d+(?::\d+)?$/, ''))
+        .find(key => activeKeys.has(key)) ?? null;
 }
 
 function loadScript(script) {
@@ -109,11 +119,9 @@ function loadScript(script) {
         if (hasSrc || isModule) {
             // External or inline module converted to blob.
             if (isModule && !hasSrc) {
-                // Fix issue resolving paths.
-                const base = window.location.origin;
-                const code = script.textContent.replaceAll('from \'/', `from '${base}/`);
-                
+                const code = script.textContent;
                 const blob = new Blob([code], { type: 'text/javascript' });
+
                 newScript.src = URL.createObjectURL(blob);
                 newScript.onload = () => {
                     URL.revokeObjectURL(newScript.src);
@@ -134,7 +142,10 @@ function loadScript(script) {
 }
 
 function registerPageHook(type, callback) {
-    const key = getPageKey(window.location.href);
+    const key = inferActiveModuleKey();
+
+    if (!key)
+        throw new Error('Page hooks must be registered from a module script.');
 
     if (!pageHooks[type][key])
         pageHooks[type][key] = [];
@@ -142,9 +153,14 @@ function registerPageHook(type, callback) {
     pageHooks[type][key].push(callback);
 }
 
-function runPageHooks(type, url, context) {
-    const key = getPageKey(url);
-    const callbacks = pageHooks[type][key] || [];
+async function runHooks(type, context) {
+    for (const callback of hooks[type]) {
+        await callback(context);
+    }
+}
+
+function runPageHooks(type, context) {
+    const callbacks = getActiveModuleKeys().flatMap(key => pageHooks[type][key] || []);
 
     for (const callback of callbacks) {
         callback(context);

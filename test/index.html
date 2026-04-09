@@ -22,7 +22,7 @@
         <button id="update">Update</button>
         <div id="container"></div>
         <script type="module">
-            import { process } from '/lib/runtime.js';
+            import { process } from 'http://localhost:3000/lib/runtime.js';
 
             document.getElementById('update').addEventListener('click', () => {
                 document.getElementById('container').innerHTML = `<div v-scope="{ count: 0 }">

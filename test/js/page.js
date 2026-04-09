@@ -1,13 +1,13 @@
-import { onPageEnter, onPageLeave, register } from '../lib/runtime.js';
+import { onPageLoad, onPageUnload, register } from '../lib/runtime.js';
 
-onPageEnter(() => {
+onPageLoad(() => {
     const saved = sessionStorage.getItem('count');
 
     if (saved !== null)
         document.getElementById('test').$data.count = saved;
-}, { skipCache: true });
+});
 
-onPageLeave(() => {
+onPageUnload(() => {
     sessionStorage.setItem('count', document.getElementById('test').$data.count);
 });
 

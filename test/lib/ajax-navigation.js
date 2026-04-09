@@ -1,5 +1,5 @@
 import morphdom from 'https://cdn.jsdelivr.net/npm/morphdom@2.7.8/+esm';
-import { pageEnter, pageLeave, process } from './runtime.js';
+import { pageLoad, pageUnload, process } from './runtime.js';
 
 // Set the current url.
 let currentUrl = window.location.href;
@@ -37,7 +37,15 @@ async function performAjaxPageLoad(url, options = {}, popstate = null) {
     if (!response.ok)
         return;
 
-    pageLeave(currentUrl);
+    pageUnload(currentUrl);
+
+    const contentType = response.headers.get('content-type') || '';
+
+    // If not a HTML response do a full page load.
+    if (!contentType.startsWith('text/html')) {
+        window.location.href = url;
+        return;
+    }
 
     // The response url may be different than the request url, if the server issued a redirect.
     const finalUrl = response.url;
@@ -48,14 +56,6 @@ async function performAjaxPageLoad(url, options = {}, popstate = null) {
 
     // Set the current url.
     currentUrl = finalUrl;
-
-    const contentType = response.headers.get('content-type') || '';
-
-    // If not a HTML response do a full page load.
-    if (!contentType.startsWith('text/html')) {
-        window.location.href = url;
-        return;
-    }
 
     const html = await response.text();
 
@@ -87,7 +87,7 @@ async function performAjaxPageLoad(url, options = {}, popstate = null) {
         await process(element);
     }
 
-    pageEnter(currentUrl);
+    pageLoad(currentUrl);
 }
 
 /// Helpers
