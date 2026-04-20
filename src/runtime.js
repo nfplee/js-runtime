@@ -153,9 +153,9 @@ function registerPageHook(type, callback) {
     pageHooks[type][key].push(callback);
 }
 
-async function runHooks(type, context) {
+function runHooks(type, context) {
     for (const callback of hooks[type]) {
-        await callback(context);
+        callback(context);
     }
 }
 
