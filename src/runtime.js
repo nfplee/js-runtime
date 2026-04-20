@@ -160,7 +160,7 @@ function runHooks(type, context) {
 }
 
 function runPageHooks(type, context) {
-    const callbacks = getActiveModuleKeys().flatMap(key => pageHooks[type][key] || []);
+    const callbacks = new Set(getActiveModuleKeys().flatMap(key => pageHooks[type][key] || []));
 
     for (const callback of callbacks) {
         callback(context);

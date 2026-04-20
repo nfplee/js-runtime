@@ -153,14 +153,14 @@ function registerPageHook(type, callback) {
     pageHooks[type][key].push(callback);
 }
 
-async function runHooks(type, context) {
+function runHooks(type, context) {
     for (const callback of hooks[type]) {
-        await callback(context);
+        callback(context);
     }
 }
 
 function runPageHooks(type, context) {
-    const callbacks = getActiveModuleKeys().flatMap(key => pageHooks[type][key] || []);
+    const callbacks = new Set(getActiveModuleKeys().flatMap(key => pageHooks[type][key] || []));
 
     for (const callback of callbacks) {
         callback(context);
