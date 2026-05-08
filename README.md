@@ -47,7 +47,7 @@ Once the runtime is configured, you can use the hooks it provides to initialize 
 
 ## Page Hooks
 
-Page hooks are registered against the module that is executing when they are declared. In practice, that means a module script can register page hooks once and those hooks will automatically apply on any page that includes that module.
+Page hooks are registered against the active module script whose import.meta you pass in. In practice, that means a module script can register page hooks once and those hooks will automatically apply on any page that includes that module.
 
 Register page hooks from module files, not from inline scripts. Inline scripts, including inline module scripts, are executed each time they are encountered during AJAX navigation, so hooks declared there will be registered again on every visit.
 
@@ -76,7 +76,7 @@ These hooks run for standard page loads and enhanced AJAX navigations. `onPageLo
 `onPageLoad()` receives an `isCacheRestore` boolean. It is `true` when the page was restored from the browser back-forward cache (bfcache) and `false` for normal loads and AJAX navigations. By default, `onPageLoad()` skips bfcache restores. This helps avoid re-attaching DOM event handlers on pages restored from the browser cache.
 
 ```js
-onPageLoad(() => {
+onPageLoad(import.meta, () => {
     document.getElementById('foo').addEventListener('change', ...);
 });
 ```
@@ -84,7 +84,7 @@ onPageLoad(() => {
 If you want the callback to also run on bfcache restores, set `includeCacheRestore: true`:
 
 ```js
-onPageLoad(context => {
+onPageLoad(import.meta, context => {
     if (context.isCacheRestore) {
         ...
     }

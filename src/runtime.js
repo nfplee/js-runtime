@@ -27,10 +27,10 @@ export function onLoad(callback) {
     hooks.load.push(callback);
 }
 
-export function onPageLoad(callback, {
+export function onPageLoad(module, callback, {
     includeCacheRestore = false
 } = {}) {
-    registerPageHook('load', context => {
+    registerPageHook('load', module, context => {
         if (!includeCacheRestore && context.isCacheRestore)
             return;
 
@@ -38,8 +38,8 @@ export function onPageLoad(callback, {
     });
 }
 
-export function onPageUnload(callback) {
-    registerPageHook('unload', callback);
+export function onPageUnload(module, callback) {
+    registerPageHook('unload', module, callback);
 }
 
 export function pageLoad(url, isCacheRestore = false) {
@@ -82,20 +82,19 @@ export function getActiveModuleKeys() {
         .filter(Boolean))];
 }
 
-function inferActiveModuleKey() {
-    const activeKeys = new Set(getActiveModuleKeys());
-
-    if (activeKeys.size === 0)
+function getModuleKey(module) {
+    if (!module?.url)
         return null;
 
-    const stack = new Error().stack;
+    let key;
 
-    if (!stack)
+    try {
+        key = new URL(module.url, document.baseURI).href;
+    } catch {
         return null;
+    }
 
-    return (stack.match(/https?:\/\/[^\s)\]]+/g) || [])
-        .map(match => match.replace(/:\d+(?::\d+)?$/, ''))
-        .find(key => activeKeys.has(key)) ?? null;
+    return getActiveModuleKeys().includes(key) ? key : null;
 }
 
 function loadScript(script) {
@@ -141,11 +140,11 @@ function loadScript(script) {
     });
 }
 
-function registerPageHook(type, callback) {
-    const key = inferActiveModuleKey();
+function registerPageHook(type, module, callback) {
+    const key = getModuleKey(module);
 
     if (!key)
-        throw new Error('Page hooks must be registered from a module script.');
+        throw new Error('Page hooks must be registered with import.meta from an active module script.');
 
     if (!pageHooks[type][key])
         pageHooks[type][key] = [];
