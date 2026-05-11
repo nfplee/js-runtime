@@ -86,14 +86,8 @@ function getModuleKey(module) {
     if (!module?.url)
         return null;
 
-    let key;
-
-    try {
-        key = new URL(module.url, document.baseURI).href;
-    } catch {
-        return null;
-    }
-
+    const key = module.url;
+    
     return getActiveModuleKeys().includes(key) ? key : null;
 }
 
