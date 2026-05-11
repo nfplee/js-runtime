@@ -83,10 +83,10 @@ export function getActiveModuleKeys() {
 }
 
 function getModuleKey(module) {
-    if (!module?.url)
-        return null;
+    const key = module?.url;
 
-    const key = module.url;
+    if (!key)
+        return null;
     
     return getActiveModuleKeys().includes(key) ? key : null;
 }
